@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: devops-postgres
+    environment:
+      POSTGRES_DB: devopsdb
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: devopspassword
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devops -d devopsdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - devops-net
+
+  backend:
+    build:
+      context: ./backend
+    container_name: devops-backend
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: devopsdb
+      DB_USER: devops
+      DB_PASSWORD: devopspassword
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - devops-net
+
+networks:
+  devops-net:
+    driver: bridge

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Assessment</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+    }
+
+    .container {
+      text-align: center;
+      width: 90%;
+      max-width: 900px;
+    }
+
+    h1 {
+      font-size: 56px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #cbd5e1;
+      font-size: 18px;
+      margin-bottom: 40px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 30px;
+      border-radius: 18px;
+    }
+
+    .card h2 {
+      margin-bottom: 15px;
+    }
+
+    .status {
+      font-weight: bold;
+      color: #22c55e;
+    }
+
+    footer {
+      margin-top: 40px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>Welcome</h1>
+
+    <p class="subtitle">
+      Cloud / DevOps Engineer Technical Assessment
+    </p>
+
+    <div class="cards">
+
+      <div class="card">
+        <h2>Frontend</h2>
+        <p class="status">Running</p>
+      </div>
+
+      <div class="card">
+        <h2>Backend API</h2>
+        <p class="status" id="api-status">Checking...</p>
+      </div>
+
+      <div class="card">
+        <h2>Database</h2>
+        <p class="status" id="db-status">Checking...</p>
+      </div>
+
+    </div>
+
+    <footer>
+      AWS • Terraform • Docker • GitHub Actions
+    </footer>
+
+  </div>
+
+  <script>
+    async function checkServices() {
+      try {
+        const apiResponse = await fetch("http://127.0.0.1:8000/health");
+        const apiData = await apiResponse.json();
+
+        document.getElementById("api-status").innerText =
+          apiData.status === "healthy" ? "Healthy" : "Unavailable";
+      } catch {
+        document.getElementById("api-status").innerText = "Unavailable";
+      }
+
+      try {
+        const dbResponse = await fetch("http://127.0.0.1:8000/db-check");
+        const dbData = await dbResponse.json();
+
+        document.getElementById("db-status").innerText =
+          dbData.database === "connected" ? "Connected" : "Disconnected";
+      } catch {
+        document.getElementById("db-status").innerText = "Disconnected";
+      }
+    }
+
+    checkServices();
+  </script>
+
+</body>
+</html>
