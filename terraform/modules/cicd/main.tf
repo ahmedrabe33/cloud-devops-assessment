@@ -32,11 +32,12 @@ data "aws_iam_policy_document" "github_assume_role" {
     }
 
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
 
       values = [
-        "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/main"
+        "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/main",
+        "repo:${var.github_owner}@*/${var.github_repo}@*:ref:refs/heads/main"
       ]
     }
   }
@@ -54,7 +55,6 @@ resource "aws_iam_role" "github_actions" {
 
 data "aws_iam_policy_document" "github_actions" {
 
-  # Required for ECR authentication
   statement {
     sid    = "ECRAuthorization"
     effect = "Allow"
@@ -68,7 +68,6 @@ data "aws_iam_policy_document" "github_actions" {
     ]
   }
 
-  # Push Docker images only to this repository
   statement {
     sid    = "ECRPush"
     effect = "Allow"
@@ -88,7 +87,6 @@ data "aws_iam_policy_document" "github_actions" {
     ]
   }
 
-  # Read current ECS task definition
   statement {
     sid    = "ECSRead"
     effect = "Allow"
@@ -103,7 +101,6 @@ data "aws_iam_policy_document" "github_actions" {
     ]
   }
 
-  # Register a new task definition revision
   statement {
     sid    = "ECSRegisterTaskDefinition"
     effect = "Allow"
@@ -117,7 +114,6 @@ data "aws_iam_policy_document" "github_actions" {
     ]
   }
 
-  # Deploy only to our ECS service
   statement {
     sid    = "ECSDeploy"
     effect = "Allow"
@@ -131,7 +127,6 @@ data "aws_iam_policy_document" "github_actions" {
     ]
   }
 
-  # Required when GitHub registers a new task definition
   statement {
     sid    = "PassECSTaskRoles"
     effect = "Allow"
