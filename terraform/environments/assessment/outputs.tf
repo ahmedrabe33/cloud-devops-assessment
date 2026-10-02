@@ -46,16 +46,12 @@ output "frontend_bucket_name" {
   value = module.frontend.frontend_bucket_name
 }
 
-output "cloudfront_domain_name" {
-  value = module.frontend.cloudfront_domain_name
-}
-
-output "cloudfront_distribution_id" {
-  value = module.frontend.cloudfront_distribution_id
-}
 output "ecs_cpu_alarm_name" {
   value = module.monitoring.ecs_cpu_alarm_name
 }
 output "github_actions_role_arn" {
   value = module.cicd.github_actions_role_arn
+}
+output "frontend_website_url" {
+  value = module.frontend.website_url
 }
