@@ -15,53 +15,125 @@
 
     body {
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       background: linear-gradient(135deg, #0f172a, #1e293b);
       color: white;
+      padding: 40px 20px;
     }
 
     .container {
-      text-align: center;
-      width: 90%;
-      max-width: 900px;
+      width: 100%;
+      max-width: 1000px;
+      margin: auto;
     }
 
     h1 {
-      font-size: 56px;
+      text-align: center;
+      font-size: 52px;
       margin-bottom: 10px;
     }
 
     .subtitle {
+      text-align: center;
       color: #cbd5e1;
-      font-size: 18px;
-      margin-bottom: 40px;
+      margin-bottom: 35px;
     }
 
-    .cards {
+    .status-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
     }
 
     .card {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 30px;
-      border-radius: 18px;
+      border-radius: 16px;
+      padding: 22px;
     }
 
-    .card h2 {
-      margin-bottom: 15px;
+    .card h3 {
+      margin-bottom: 10px;
     }
 
     .status {
-      font-weight: bold;
       color: #22c55e;
+      font-weight: bold;
+    }
+
+    .form-card {
+      max-width: 600px;
+      margin: 0 auto 30px;
+    }
+
+    label {
+      display: block;
+      margin: 15px 0 7px;
+      color: #cbd5e1;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      border-radius: 9px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: white;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 13px;
+      margin-top: 18px;
+      border: none;
+      border-radius: 9px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .submit-btn {
+      background: #22c55e;
+      color: #052e16;
+    }
+
+    .show-btn {
+      background: #38bdf8;
+      color: #082f49;
+    }
+
+    #message {
+      margin-top: 15px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .records {
+      margin-top: 30px;
+      display: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.1);
     }
 
     footer {
+      text-align: center;
       margin-top: 40px;
       color: #94a3b8;
       font-size: 14px;
@@ -71,64 +143,241 @@
 
 <body>
 
-  <div class="container">
+<div class="container">
 
-    <h1>Welcome</h1>
+  <h1>Welcome</h1>
+  <p class="subtitle">Cloud / DevOps Engineer Technical Assessment</p>
 
-    <p class="subtitle">
-      Cloud / DevOps Engineer Technical Assessment
-    </p>
+  <div class="status-grid">
 
-    <div class="cards">
-
-      <div class="card">
-        <h2>Frontend</h2>
-        <p class="status">Running</p>
-      </div>
-
-      <div class="card">
-        <h2>Backend API</h2>
-        <p class="status" id="api-status">Checking...</p>
-      </div>
-
-      <div class="card">
-        <h2>Database</h2>
-        <p class="status" id="db-status">Checking...</p>
-      </div>
-
+    <div class="card">
+      <h3>Frontend</h3>
+      <p class="status">Running</p>
     </div>
 
-    <footer>
-      AWS • Terraform • Docker • GitHub Actions
-    </footer>
+    <div class="card">
+      <h3>Backend API</h3>
+      <p class="status" id="api-status">Checking...</p>
+    </div>
+
+    <div class="card">
+      <h3>Database</h3>
+      <p class="status" id="db-status">Checking...</p>
+    </div>
 
   </div>
 
-  <script>
-    async function checkServices() {
-      try {
-        const apiResponse = await fetch("http://127.0.0.1:8000/health");
-        const apiData = await apiResponse.json();
+  <div class="card form-card">
 
-        document.getElementById("api-status").innerText =
-          apiData.status === "healthy" ? "Healthy" : "Unavailable";
-      } catch {
-        document.getElementById("api-status").innerText = "Unavailable";
-      }
+    <h2>Register User</h2>
 
-      try {
-        const dbResponse = await fetch("http://127.0.0.1:8000/db-check");
-        const dbData = await dbResponse.json();
+    <label for="name">Name</label>
+    <input type="text" id="name" placeholder="Enter your name">
 
-        document.getElementById("db-status").innerText =
-          dbData.database === "connected" ? "Connected" : "Disconnected";
-      } catch {
-        document.getElementById("db-status").innerText = "Disconnected";
-      }
+    <label for="age">Age</label>
+    <input type="number" id="age" placeholder="Enter your age">
+
+    <button class="submit-btn" onclick="addUser()">
+      Submit
+    </button>
+
+    <button class="show-btn" onclick="showUsers()">
+      Show All Records
+    </button>
+
+    <p id="message"></p>
+
+  </div>
+
+  <div class="records" id="records-section">
+
+    <div class="card">
+      <h2 style="margin-bottom: 20px;">Registered Users</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+
+        <tbody id="users-table"></tbody>
+
+      </table>
+    </div>
+
+  </div>
+
+  <footer>
+    AWS • Terraform • Docker • GitHub Actions
+  </footer>
+
+</div>
+
+<script>
+
+const API_URL = "http://127.0.0.1:8000";
+
+
+async function checkServices() {
+
+  try {
+
+    const response = await fetch(`${API_URL}/health`);
+    const data = await response.json();
+
+    document.getElementById("api-status").innerText =
+      data.status === "healthy"
+      ? "Healthy"
+      : "Unavailable";
+
+  } catch {
+
+    document.getElementById("api-status").innerText =
+      "Unavailable";
+  }
+
+
+  try {
+
+    const response = await fetch(`${API_URL}/db-check`);
+    const data = await response.json();
+
+    document.getElementById("db-status").innerText =
+      data.database === "connected"
+      ? "Connected"
+      : "Disconnected";
+
+  } catch {
+
+    document.getElementById("db-status").innerText =
+      "Disconnected";
+  }
+}
+
+
+async function addUser() {
+
+  const name = document.getElementById("name").value.trim();
+  const age = parseInt(document.getElementById("age").value);
+
+  const message = document.getElementById("message");
+
+
+  if (!name || !age) {
+
+    message.innerText = "Please enter name and age.";
+    return;
+  }
+
+
+  try {
+
+    const response = await fetch(`${API_URL}/users`, {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        name: name,
+        age: age
+      })
+
+    });
+
+
+    const data = await response.json();
+
+
+    if (!response.ok) {
+
+      message.innerText =
+        data.detail || "Failed to add user.";
+
+      return;
     }
 
-    checkServices();
-  </script>
+
+    message.innerText =
+      "User added successfully.";
+
+
+    document.getElementById("name").value = "";
+    document.getElementById("age").value = "";
+
+
+  } catch {
+
+    message.innerText =
+      "Could not connect to backend.";
+  }
+}
+
+
+async function showUsers() {
+
+  try {
+
+    const response =
+      await fetch(`${API_URL}/users`);
+
+    const data =
+      await response.json();
+
+
+    const table =
+      document.getElementById("users-table");
+
+    table.innerHTML = "";
+
+
+    data.users.forEach(user => {
+
+      const row =
+        document.createElement("tr");
+
+
+      const date =
+        new Date(user.created_at)
+        .toLocaleString();
+
+
+      row.innerHTML = `
+        <td>${user.id}</td>
+        <td>${user.name}</td>
+        <td>${user.age}</td>
+        <td>${date}</td>
+      `;
+
+
+      table.appendChild(row);
+
+    });
+
+
+    document.getElementById(
+      "records-section"
+    ).style.display = "block";
+
+
+  } catch {
+
+    document.getElementById("message")
+      .innerText =
+      "Could not load records.";
+  }
+}
+
+
+checkServices();
+
+</script>
 
 </body>
 </html>
