@@ -870,23 +870,23 @@ Then the screenshots can render directly in GitHub:
 
 ### Application
 
-![Application health](images/application-health.png)
+![Application health](images/three-tier.jpeg)
 
 ### GitHub Actions
 
-![GitHub Actions](images/github-actions.png)
+![GitHub Actions](images/ci.jpeg)
 
 ### CloudWatch Alarm
 
-![CloudWatch alarm](images/cloudwatch-alarm.png)
+![CloudWatch alarm](images/cw.jpeg)
 
 ### CloudWatch Logs
 
-![CloudWatch logs](images/cloudwatch-logs.png)
+![CloudWatch logs](images/logs.jpeg)
 
 ### ECS Health and Metrics
 
-![ECS health](images/ecs-health.png)
+![ECS health](images/ecs.jpeg)
 
 ---
 
