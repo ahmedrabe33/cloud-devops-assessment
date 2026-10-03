@@ -8,7 +8,7 @@ resource "aws_cloudwatch_log_group" "ecs" {
 }
 
 resource "aws_security_group" "alb" {
-  name = "cda-${var.environment}-alb"
+  name        = "cda-${var.environment}-alb"
   description = "Allow HTTP from internet to ALB"
   vpc_id      = var.vpc_id
 
@@ -68,7 +68,7 @@ resource "aws_security_group_rule" "rds_from_ecs" {
 }
 
 resource "aws_lb" "main" {
-  name = "cda-assessment-alb"
+  name               = "cda-assessment-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
@@ -76,7 +76,7 @@ resource "aws_lb" "main" {
 }
 
 resource "aws_lb_target_group" "backend" {
-  name = "cda-assessment-tg"
+  name        = "cda-assessment-tg"
   port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
