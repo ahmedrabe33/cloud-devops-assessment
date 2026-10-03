@@ -2,7 +2,7 @@
 
 A reproducible AWS deployment of a simple three-tier web application using **Terraform**, **Docker**, **Amazon ECS Fargate**, **Amazon RDS PostgreSQL**, **Amazon S3**, **Amazon ECR**, **Amazon CloudWatch**, and **GitHub Actions**.
 
-The application code is intentionally simple. The main focus of this project is the DevOps implementation: Infrastructure as Code, containerization, CI/CD, networking, security, monitoring, repeatability, and clear documentation.
+The application itself is intentionally simple. The main focus of this project is the DevOps implementation: Infrastructure as Code, containerization, CI/CD, networking, security, monitoring, repeatability, and clear documentation.
 
 ---
 
@@ -28,7 +28,7 @@ The application code is intentionally simple. The main focus of this project is 
 
 ---
 
-## Architecture
+# Architecture
 
 ```mermaid
 flowchart LR
@@ -69,7 +69,7 @@ flowchart LR
     ECS --> CW
 ```
 
-### Application Traffic
+## Application Traffic
 
 ```text
 Browser
@@ -87,7 +87,7 @@ Browser
        RDS PostgreSQL :5432
 ```
 
-### CI/CD Flow
+## CI/CD Flow
 
 ```text
 Push to main
@@ -106,7 +106,7 @@ GitHub Actions
 
 ---
 
-## Technology Stack
+# Technology Stack
 
 | Area | Technology |
 |---|---|
@@ -128,7 +128,7 @@ GitHub Actions
 
 ---
 
-## Why AWS?
+# Why AWS?
 
 AWS was selected because it provides managed services for every layer required by the solution and integrates well with Terraform and GitHub Actions.
 
@@ -143,7 +143,7 @@ The design intentionally uses managed services to reduce operational overhead:
 
 ---
 
-## Repository Structure
+# Repository Structure
 
 ```text
 .
@@ -207,7 +207,7 @@ Install:
 - An AWS account
 - A GitHub account
 
-Verify:
+Verify the tools:
 
 ```bash
 git --version
@@ -300,14 +300,18 @@ The cloud deployment uses the placeholder:
 __API_URL__
 ```
 
-and Terraform replaces it with the ALB URL.
+Terraform replaces it with the ALB URL.
 
-For local testing, create a temporary copy without changing the tracked file:
+For local testing, create a temporary copy without modifying the tracked frontend file:
 
 ```bash
 sed 's|__API_URL__|http://localhost:8000|g' \
   frontend/index.html > /tmp/index.html
+```
 
+Then:
+
+```bash
 cd /tmp
 python3 -m http.server 8080
 ```
@@ -320,7 +324,13 @@ http://localhost:8080
 
 ## 4. Stop Local Environment
 
-From the project directory:
+Return to the project directory:
+
+```bash
+cd ~/cloud-devops-assessment
+```
+
+Then:
 
 ```bash
 docker compose down
@@ -330,19 +340,25 @@ docker compose down
 
 # Reset Local Environment
 
-To completely remove the local containers, networks, and PostgreSQL data:
+To completely remove local containers, networks, and PostgreSQL data:
 
 ```bash
 docker compose down -v --remove-orphans
 ```
 
-Optional cleanup of the locally built backend image:
+Optional cleanup of locally built project images:
+
+```bash
+docker images
+```
+
+Then remove the backend image if needed:
 
 ```bash
 docker image rm cloud-devops-backend 2>/dev/null || true
 ```
 
-Then start again from a clean local state:
+Start again from a completely clean local state:
 
 ```bash
 docker compose up --build
@@ -361,7 +377,7 @@ Implemented practices include:
 - Dependency installation separated from runtime code
 - Non-root runtime user
 - `.dockerignore`
-- Minimal runtime image
+- Minimal final image
 - Application port `8000`
 
 Manual build:
@@ -374,7 +390,7 @@ docker build -t cloud-devops-backend ./backend
 
 # Deploy to AWS from Zero
 
-This section describes a fresh deployment for a new user or a new AWS environment.
+This section describes a fresh deployment for a new user or a clean AWS environment.
 
 > AWS resources such as NAT Gateway, Application Load Balancer, ECS Fargate, and RDS may generate charges. Destroy the environment after testing if it is no longer needed.
 
@@ -382,7 +398,7 @@ This section describes a fresh deployment for a new user or a new AWS environmen
 
 ## Step 1 — Configure AWS CLI
 
-Configure credentials for your AWS account:
+Configure credentials:
 
 ```bash
 aws configure
@@ -406,17 +422,32 @@ Go to the bootstrap directory:
 cd terraform/bootstrap
 ```
 
-Initialize and deploy:
+Initialize:
 
 ```bash
 terraform init
+```
+
+Format and validate:
+
+```bash
 terraform fmt
 terraform validate
+```
+
+Review:
+
+```bash
 terraform plan
+```
+
+Create the remote-state resources:
+
+```bash
 terraform apply
 ```
 
-Confirm with:
+Confirm:
 
 ```text
 yes
@@ -430,7 +461,7 @@ terraform output
 
 The bootstrap configuration creates the S3 bucket used for Terraform remote state.
 
-### Configure the backend bucket
+### Configure the Backend Bucket
 
 Open:
 
@@ -438,7 +469,7 @@ Open:
 terraform/environments/assessment/backend.tf
 ```
 
-Set the bucket to the S3 bucket created by the bootstrap step:
+Set the bucket name to the S3 bucket created by the bootstrap step:
 
 ```hcl
 terraform {
@@ -452,7 +483,7 @@ terraform {
 }
 ```
 
-S3 bucket names are globally unique, so another user should use the bucket created in their own AWS account.
+S3 bucket names are globally unique, so a different AWS account should use its own bucket name.
 
 ---
 
@@ -464,13 +495,13 @@ Move to the assessment environment:
 cd ../environments/assessment
 ```
 
-Review:
+Review the example variables:
 
 ```bash
 cat terraform.tfvars.example
 ```
 
-If required by the configuration:
+Create a local variables file if needed:
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
@@ -507,32 +538,43 @@ terraform fmt -recursive
 terraform validate
 ```
 
+---
+
+## Step 5 — Set ECS Desired Count to 0 for the First Deployment
+
+On a completely fresh deployment, the ECR repository is empty.
+
+If ECS starts with `desired_count = 1`, it may try to start a task before the first Docker image exists.
+
+From the repository root, set the ECS default desired count to `0`:
+
+```bash
+cd ~/cloud-devops-assessment
+```
+
+```bash
+sed -i 's/default = 1/default = 0/' terraform/modules/ecs/variables.tf
+```
+
+Verify:
+
+```bash
+grep -n "default = " terraform/modules/ecs/variables.tf
+```
+
+Then return to the assessment environment:
+
+```bash
+cd terraform/environments/assessment
+```
+
 Review:
 
 ```bash
 terraform plan
 ```
 
----
-
-## Step 5 — First Infrastructure Deployment
-
-The backend image does not exist in ECR on a completely fresh deployment.
-
-The recommended bootstrap flow is:
-
-1. Create the infrastructure with the ECS service temporarily set to `desired_count = 0`.
-2. Push the first backend image through GitHub Actions.
-3. Change ECS desired count to `1`.
-4. Apply Terraform again.
-
-Before the first apply, confirm that the ECS module is using:
-
-```hcl
-desired_count = 0
-```
-
-Then:
+Create the infrastructure:
 
 ```bash
 terraform apply
@@ -544,27 +586,19 @@ Confirm:
 yes
 ```
 
-After the infrastructure is created:
+After creation:
 
 ```bash
 terraform output
 ```
 
-You should now have:
-
-- ECR repository
-- ECS cluster
-- ALB
-- RDS
-- S3 frontend
-- GitHub OIDC role
-- CloudWatch resources
+At this point the main infrastructure exists, but the ECS service has no running task yet.
 
 ---
 
 # CI/CD
 
-The GitHub Actions workflow runs automatically when changes are pushed to `main`.
+GitHub Actions runs automatically on pushes to `main`.
 
 Pipeline flow:
 
@@ -590,7 +624,7 @@ Deploy to ECS
 
 Terraform creates the GitHub Actions IAM role.
 
-Get the ARN:
+Get the role ARN:
 
 ```bash
 terraform output -raw github_actions_role_arn
@@ -614,23 +648,29 @@ Name: AWS_ROLE_ARN
 Value: <terraform output>
 ```
 
-The workflow uses OIDC temporary credentials, so no long-lived AWS access key or secret access key is required in GitHub.
+The workflow uses OIDC temporary credentials.
+
+No long-lived AWS access key or secret access key is required in GitHub Actions.
 
 ---
 
-## Step 7 — Build and Push the First Image
+## Step 7 — Build and Push the First Docker Image
 
 Push a commit to `main`:
 
 ```bash
 cd ~/cloud-devops-assessment
+```
 
+If you have changes:
+
+```bash
 git add .
 git commit -m "Trigger initial deployment"
 git push origin main
 ```
 
-If there are no code changes, you can create an empty commit:
+If there are no changes:
 
 ```bash
 git commit --allow-empty -m "Trigger initial deployment"
@@ -650,11 +690,9 @@ The workflow should:
 2. Build the Docker image
 3. Authenticate to AWS using OIDC
 4. Push the image to ECR
-5. Run the deploy stage
+5. Run the ECS deployment stage
 
-At this point, the first image should exist in ECR.
-
-Verify:
+Verify that an image now exists:
 
 ```bash
 aws ecr list-images \
@@ -664,19 +702,45 @@ aws ecr list-images \
 
 ---
 
-## Step 8 — Start the ECS Service
+## Step 8 — Set ECS Desired Count to 1
 
-After the first image exists, change the ECS service desired count to:
+After the first Docker image exists in ECR, enable one ECS task.
 
-```hcl
-desired_count = 1
+From the repository root:
+
+```bash
+cd ~/cloud-devops-assessment
 ```
 
-Then apply:
+Run:
+
+```bash
+sed -i 's/default = 0/default = 1/' terraform/modules/ecs/variables.tf
+```
+
+Verify the change:
+
+```bash
+grep -n "default = " terraform/modules/ecs/variables.tf
+```
+
+You should see the ECS desired-count variable using:
+
+```text
+default = 1
+```
+
+Apply the change:
 
 ```bash
 cd terraform/environments/assessment
+```
+
+```bash
 terraform plan
+```
+
+```bash
 terraform apply
 ```
 
@@ -708,17 +772,25 @@ Pending: 0
 
 ## Step 9 — Get Deployment URLs
 
+From:
+
+```bash
+cd ~/cloud-devops-assessment/terraform/environments/assessment
+```
+
+View all outputs:
+
 ```bash
 terraform output
 ```
 
-Get the frontend URL:
+Frontend:
 
 ```bash
 terraform output -raw frontend_website_url
 ```
 
-Get the backend ALB DNS:
+Backend ALB:
 
 ```bash
 terraform output -raw alb_dns_name
@@ -730,7 +802,13 @@ Open the frontend URL in a browser.
 
 # Frontend Deployment
 
-Terraform uploads `frontend/index.html` to Amazon S3.
+Terraform uploads:
+
+```text
+frontend/index.html
+```
+
+to Amazon S3.
 
 The source file contains:
 
@@ -738,15 +816,15 @@ The source file contains:
 __API_URL__
 ```
 
-Terraform replaces this with:
+Terraform replaces it with:
 
 ```text
 http://<ALB-DNS>
 ```
 
-before uploading the final `index.html`.
+before uploading the rendered file.
 
-This allows the same frontend source file to work with dynamically created AWS infrastructure.
+This allows the frontend to use the dynamically created backend address.
 
 ---
 
@@ -766,7 +844,7 @@ Public subnets contain:
 
 Private subnets contain:
 
-- ECS Fargate
+- ECS Fargate tasks
 - RDS PostgreSQL
 
 Traffic flow:
@@ -793,9 +871,9 @@ RDS PostgreSQL
 
 ## Private Resources
 
-- ECS tasks are deployed in private subnets.
+- ECS tasks run in private subnets.
 - ECS tasks do not receive public IP addresses.
-- RDS is deployed in private subnets.
+- RDS runs in private subnets.
 - RDS public access is disabled.
 
 ## Restricted Ports
@@ -813,7 +891,7 @@ ECS -> RDS      : TCP 5432
 Separate IAM roles are used for:
 
 - ECS task execution
-- GitHub Actions
+- GitHub Actions deployment
 
 GitHub Actions permissions are limited to required deployment actions where possible.
 
@@ -832,7 +910,7 @@ This avoids storing permanent AWS credentials in GitHub.
 Encryption is enabled for:
 
 - RDS storage
-- S3 objects
+- S3 storage
 - ECR
 - Terraform remote state
 
@@ -864,7 +942,7 @@ Log group:
 /ecs/cloud-devops-assessment-assessment
 ```
 
-View logs:
+View recent logs:
 
 ```bash
 aws logs tail \
@@ -913,28 +991,28 @@ Fargate was selected to avoid managing EC2 container hosts.
 Advantages:
 
 - No OS administration
-- No node maintenance
+- No worker-node maintenance
 - Native ECR integration
 - Native ALB integration
 - Native CloudWatch integration
 
 Trade-off:
 
-Fargate may be more expensive than optimized EC2 workloads at larger scale.
+Fargate may cost more than optimized EC2 workloads at larger scale.
 
 ## RDS Instead of Self-Managed PostgreSQL
 
 RDS provides:
 
 - Managed PostgreSQL
-- Backups
+- Automated backups
 - Encryption
 - Reduced maintenance
 - VPC integration
 
 ## Private ECS and RDS
 
-The compute and database layers are not directly exposed to the internet.
+Compute and database resources are not directly exposed to the internet.
 
 ## Single NAT Gateway
 
@@ -957,7 +1035,7 @@ CloudFront was considered for:
 
 During implementation, the AWS account used for the assessment was restricted from creating new CloudFront resources until account verification was completed.
 
-Because CloudFront was not required by the assessment, S3 Static Website Hosting was used as a temporary alternative.
+Because CloudFront was not required by the assessment, S3 Static Website Hosting was used as a practical temporary alternative.
 
 For production, CloudFront with a private S3 origin and HTTPS would be preferred.
 
@@ -1016,6 +1094,14 @@ Cost controls would include:
 # Verification
 
 ## Backend Health
+
+Get the ALB hostname:
+
+```bash
+terraform output -raw alb_dns_name
+```
+
+Then:
 
 ```bash
 curl http://<ALB-DNS>/health
@@ -1101,15 +1187,25 @@ The following flow was verified:
 
 # Cleanup
 
+## Remove Local Environment
+
+From the repository root:
+
+```bash
+docker compose down -v --remove-orphans
+```
+
+---
+
 ## Remove AWS Assessment Infrastructure
 
 Go to:
 
 ```bash
-cd terraform/environments/assessment
+cd ~/cloud-devops-assessment/terraform/environments/assessment
 ```
 
-Export the same database variable if Terraform requires it:
+Export the database password again if Terraform requires the variable:
 
 ```bash
 export TF_VAR_db_password='YOUR_DATABASE_PASSWORD'
@@ -1127,6 +1223,8 @@ Confirm:
 yes
 ```
 
+---
+
 ## ECR Repository Contains Images
 
 If Terraform reports:
@@ -1135,7 +1233,7 @@ If Terraform reports:
 RepositoryNotEmptyException
 ```
 
-delete the repository and its images:
+delete the ECR repository and all images:
 
 ```bash
 aws ecr delete-repository \
@@ -1152,21 +1250,25 @@ terraform destroy
 
 again.
 
-Alternatively, for an assessment environment, the ECR resource can be configured with:
+For an assessment environment, the ECR Terraform resource can also use:
 
 ```hcl
 force_delete = true
 ```
 
-to allow Terraform to remove the repository together with its images.
+so Terraform can remove the repository together with its images.
 
-## Verify Complete Cleanup
+---
+
+## Verify Complete AWS Cleanup
 
 ```bash
 terraform state list
 ```
 
-If the command returns no managed assessment resources, the main environment has been removed.
+If no assessment resources are returned, the main environment has been removed.
+
+---
 
 ## Terraform Remote State
 
@@ -1176,7 +1278,9 @@ The remote-state bucket is managed separately under:
 terraform/bootstrap
 ```
 
-Do not destroy it together with the main environment unless you intentionally want to remove the Terraform backend as well.
+It is intentionally not destroyed with the main application environment.
+
+If you intentionally want to remove absolutely everything, first make sure the main environment state is empty and then review the bootstrap resources separately.
 
 ---
 
@@ -1192,11 +1296,17 @@ If a stale lock remains after confirming no Terraform process is running:
 terraform force-unlock <LOCK_ID>
 ```
 
-Do not use `-lock=false` as a normal workaround.
+Do not use:
+
+```text
+-lock=false
+```
+
+as a normal workaround.
 
 ## ECS Does Not Start
 
-Check the service:
+Check service status:
 
 ```bash
 aws ecs describe-services \
@@ -1237,7 +1347,7 @@ Check:
 Check:
 
 - RDS is available.
-- ECS and RDS are in the same expected VPC.
+- ECS and RDS are in the expected VPC.
 - RDS security group allows port `5432` from the ECS security group.
 - ECS has the correct database environment variables.
 
@@ -1254,7 +1364,7 @@ Useful screenshots include:
 5. Successful GitHub Actions workflow
 6. ECS running task
 7. ECR image
-8. CloudWatch logs
+8. CloudWatch Logs
 9. CloudWatch CPU alarm
 10. Terraform apply or destroy output
 
@@ -1271,7 +1381,7 @@ This project demonstrates:
 - Compute, networking, and managed database
 - Naming and tagging
 - Docker containerization
-- Multi-stage build
+- Multi-stage Docker build
 - Non-root container execution
 - Automated tests
 - CI/CD on `main`
@@ -1279,20 +1389,21 @@ This project demonstrates:
 - GitHub OIDC authentication
 - Least-privilege IAM approach
 - Restricted network access
-- Encryption
+- Data encryption
 - CloudWatch logging
 - CloudWatch monitoring
 - Example alert
 - Local run instructions
-- Cloud deployment instructions
+- Local reset instructions
+- Fresh AWS deployment instructions
 - Architecture diagram
-- Architecture rationale
+- Architecture decisions and rationale
 - Trade-offs
 - Production scale, cost, and high-availability considerations
 
 ---
 
-## Author
+# Author
 
 **Ahmed Rabie**
 
