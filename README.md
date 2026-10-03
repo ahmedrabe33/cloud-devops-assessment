@@ -2,7 +2,7 @@
 
 A reproducible AWS deployment of a simple three-tier web application using **Terraform**, **Docker**, **Amazon ECS Fargate**, **Amazon RDS PostgreSQL**, **Amazon S3**, **Amazon ECR**, **Amazon CloudWatch**, and **GitHub Actions**.
 
-The application itself is intentionally simple. The main focus of this project is the DevOps implementation: Infrastructure as Code, containerization, CI/CD, networking, security, monitoring, repeatability, and clear documentation.
+The application itself is intentionally simple. The main focus is the DevOps implementation: Infrastructure as Code, containerization, CI/CD, networking, security, monitoring, repeatability, and documentation.
 
 ---
 
@@ -12,6 +12,7 @@ The application itself is intentionally simple. The main focus of this project i
 - [Technology Stack](#technology-stack)
 - [Repository Structure](#repository-structure)
 - [Prerequisites](#prerequisites)
+- [Clone the Repository](#clone-the-repository)
 - [Run Locally](#run-locally)
 - [Reset Local Environment](#reset-local-environment)
 - [Deploy to AWS from Zero](#deploy-to-aws-from-zero)
@@ -130,16 +131,16 @@ GitHub Actions
 
 # Why AWS?
 
-AWS was selected because it provides managed services for every layer required by the solution and integrates well with Terraform and GitHub Actions.
+AWS was selected because it provides managed services for all required layers and integrates well with Terraform and GitHub Actions.
 
-The design intentionally uses managed services to reduce operational overhead:
+Managed services used in the solution:
 
-- **ECS Fargate** removes the need to manage EC2 worker nodes.
+- **ECS Fargate** avoids managing EC2 worker nodes.
 - **RDS PostgreSQL** provides a managed relational database.
 - **ECR** provides a private container registry.
 - **ALB** provides traffic routing and health checks.
-- **CloudWatch** provides centralized logs and monitoring.
-- **S3** provides simple, low-cost static website hosting.
+- **CloudWatch** provides centralized logging and monitoring.
+- **S3** provides simple, low-cost static frontend hosting.
 
 ---
 
@@ -207,7 +208,7 @@ Install:
 - An AWS account
 - A GitHub account
 
-Verify the tools:
+Verify:
 
 ```bash
 git --version
@@ -217,11 +218,40 @@ terraform version
 aws --version
 ```
 
-Clone the repository:
+---
+
+# Clone the Repository
+
+Clone the repository from **any directory**:
 
 ```bash
 git clone https://github.com/ahmedrabe33/cloud-devops-assessment.git
+```
+
+Enter the cloned repository:
+
+```bash
 cd cloud-devops-assessment
+```
+
+> The repository can be cloned inside any parent directory. The instructions below do not depend on `~/cloud-devops-assessment`.
+
+Set a reusable variable that always points to the Git repository root:
+
+```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+```
+
+Return to the repository root at any time with:
+
+```bash
+cd "$REPO_ROOT"
+```
+
+If you open a new terminal inside any subdirectory of this repository, recreate the variable with:
+
+```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 ```
 
 ---
@@ -233,9 +263,14 @@ The local environment uses Docker Compose to run:
 - FastAPI backend
 - PostgreSQL database
 
-## 1. Start Backend and Database
+Start from the repository root:
 
-From the repository root:
+```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+```
+
+## 1. Start Backend and Database
 
 ```bash
 docker compose up --build
@@ -256,6 +291,8 @@ GET  /db-check
 GET  /users
 POST /users
 ```
+
+Open another terminal for the following tests.
 
 Test the backend:
 
@@ -294,22 +331,23 @@ curl http://localhost:8000/users
 
 ## 3. Run Frontend Locally
 
-The cloud deployment uses the placeholder:
+The cloud frontend source contains:
 
 ```text
 __API_URL__
 ```
 
-Terraform replaces it with the ALB URL.
+Terraform replaces it with the ALB URL during cloud deployment.
 
-For local testing, create a temporary copy without modifying the tracked frontend file:
+For local testing, create a temporary copy that points to the local backend:
 
 ```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 sed 's|__API_URL__|http://localhost:8000|g' \
-  frontend/index.html > /tmp/index.html
+  "$REPO_ROOT/frontend/index.html" > /tmp/index.html
 ```
 
-Then:
+Start a simple local web server:
 
 ```bash
 cd /tmp
@@ -324,13 +362,27 @@ http://localhost:8080
 
 ## 4. Stop Local Environment
 
-Return to the project directory:
+Stop the frontend server with:
 
-```bash
-cd ~/cloud-devops-assessment
+```text
+Ctrl + C
 ```
 
-Then:
+Return to the Git repository root without assuming where the repository was cloned:
+
+```bash
+cd "$REPO_ROOT"
+```
+
+If `REPO_ROOT` is not available in the current terminal:
+
+```bash
+cd -
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+```
+
+Stop Docker Compose:
 
 ```bash
 docker compose down
@@ -340,25 +392,22 @@ docker compose down
 
 # Reset Local Environment
 
-To completely remove local containers, networks, and PostgreSQL data:
+To completely remove local containers, Docker Compose networks, and PostgreSQL data:
 
 ```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
 docker compose down -v --remove-orphans
 ```
 
-Optional cleanup of locally built project images:
-
-```bash
-docker images
-```
-
-Then remove the backend image if needed:
+Optional cleanup of the manually built backend image:
 
 ```bash
 docker image rm cloud-devops-backend 2>/dev/null || true
 ```
 
-Start again from a completely clean local state:
+Start again from a clean local state:
 
 ```bash
 docker compose up --build
@@ -368,21 +417,24 @@ docker compose up --build
 
 # Docker Implementation
 
-The backend is containerized using a multi-stage Dockerfile.
+The backend uses a multi-stage Dockerfile.
 
 Implemented practices include:
 
 - Multi-stage build
 - `python:3.12-slim`
-- Dependency installation separated from runtime code
+- Dependencies separated from application code
 - Non-root runtime user
 - `.dockerignore`
-- Minimal final image
-- Application port `8000`
+- Minimal runtime image
+- Port `8000`
 
 Manual build:
 
 ```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
 docker build -t cloud-devops-backend ./backend
 ```
 
@@ -392,25 +444,32 @@ docker build -t cloud-devops-backend ./backend
 
 This section describes a fresh deployment for a new user or a clean AWS environment.
 
-> AWS resources such as NAT Gateway, Application Load Balancer, ECS Fargate, and RDS may generate charges. Destroy the environment after testing if it is no longer needed.
+> AWS resources such as NAT Gateway, Application Load Balancer, ECS Fargate, and RDS may generate charges. Destroy the environment after testing when it is no longer required.
+
+Start from the repository:
+
+```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+```
 
 ---
 
 ## Step 1 — Configure AWS CLI
 
-Configure credentials:
+Configure AWS credentials for your own account:
 
 ```bash
 aws configure
 ```
 
-Verify:
+Verify authentication:
 
 ```bash
 aws sts get-caller-identity
 ```
 
-Do not commit AWS credentials to Git.
+Do not commit AWS access keys or secret access keys to Git.
 
 ---
 
@@ -419,7 +478,7 @@ Do not commit AWS credentials to Git.
 Go to the bootstrap directory:
 
 ```bash
-cd terraform/bootstrap
+cd "$REPO_ROOT/terraform/bootstrap"
 ```
 
 Initialize:
@@ -441,19 +500,19 @@ Review:
 terraform plan
 ```
 
-Create the remote-state resources:
+Create the state resources:
 
 ```bash
 terraform apply
 ```
 
-Confirm:
+Confirm with:
 
 ```text
 yes
 ```
 
-View outputs:
+View the outputs:
 
 ```bash
 terraform output
@@ -461,7 +520,7 @@ terraform output
 
 The bootstrap configuration creates the S3 bucket used for Terraform remote state.
 
-### Configure the Backend Bucket
+### Configure the backend bucket
 
 Open:
 
@@ -469,7 +528,9 @@ Open:
 terraform/environments/assessment/backend.tf
 ```
 
-Set the bucket name to the S3 bucket created by the bootstrap step:
+and set the bucket name to the bucket created by the bootstrap step.
+
+Example:
 
 ```hcl
 terraform {
@@ -483,19 +544,19 @@ terraform {
 }
 ```
 
-S3 bucket names are globally unique, so a different AWS account should use its own bucket name.
+S3 bucket names are globally unique, so another AWS account must use its own bucket name.
 
 ---
 
 ## Step 3 — Configure Assessment Variables
 
-Move to the assessment environment:
+Go to the assessment environment:
 
 ```bash
-cd ../environments/assessment
+cd "$REPO_ROOT/terraform/environments/assessment"
 ```
 
-Review the example variables:
+Review:
 
 ```bash
 cat terraform.tfvars.example
@@ -515,7 +576,7 @@ GitHub owner
 GitHub repository
 ```
 
-Do not put the database password in a committed `.tfvars` file.
+Do not store the database password in a committed `.tfvars` file.
 
 Export it instead:
 
@@ -525,7 +586,7 @@ export TF_VAR_db_password='CHANGE_ME_TO_A_STRONG_PASSWORD'
 
 ---
 
-## Step 4 — Initialize Terraform
+## Step 4 — Initialize the Assessment Environment
 
 ```bash
 terraform init -reconfigure
@@ -542,14 +603,12 @@ terraform validate
 
 ## Step 5 — Set ECS Desired Count to 0 for the First Deployment
 
-On a completely fresh deployment, the ECR repository is empty.
+On a completely fresh deployment, ECR does not contain a backend image yet.
 
-If ECS starts with `desired_count = 1`, it may try to start a task before the first Docker image exists.
-
-From the repository root, set the ECS default desired count to `0`:
+Set the ECS module default desired count to `0` before the first apply:
 
 ```bash
-cd ~/cloud-devops-assessment
+cd "$REPO_ROOT"
 ```
 
 ```bash
@@ -562,13 +621,13 @@ Verify:
 grep -n "default = " terraform/modules/ecs/variables.tf
 ```
 
-Then return to the assessment environment:
+Return to the assessment environment:
 
 ```bash
-cd terraform/environments/assessment
+cd "$REPO_ROOT/terraform/environments/assessment"
 ```
 
-Review:
+Review the plan:
 
 ```bash
 terraform plan
@@ -586,21 +645,21 @@ Confirm:
 yes
 ```
 
-After creation:
+View outputs:
 
 ```bash
 terraform output
 ```
 
-At this point the main infrastructure exists, but the ECS service has no running task yet.
+At this point the AWS infrastructure exists, but the ECS service has no running backend task yet.
 
 ---
 
 # CI/CD
 
-GitHub Actions runs automatically on pushes to `main`.
+GitHub Actions runs automatically when changes are pushed to `main`.
 
-Pipeline flow:
+Pipeline:
 
 ```text
 Build
@@ -623,6 +682,12 @@ Deploy to ECS
 ## Step 6 — Configure GitHub OIDC
 
 Terraform creates the GitHub Actions IAM role.
+
+From the assessment directory:
+
+```bash
+cd "$REPO_ROOT/terraform/environments/assessment"
+```
 
 Get the role ARN:
 
@@ -648,7 +713,7 @@ Name: AWS_ROLE_ARN
 Value: <terraform output>
 ```
 
-The workflow uses OIDC temporary credentials.
+The workflow authenticates through OIDC temporary credentials.
 
 No long-lived AWS access key or secret access key is required in GitHub Actions.
 
@@ -656,21 +721,13 @@ No long-lived AWS access key or secret access key is required in GitHub Actions.
 
 ## Step 7 — Build and Push the First Docker Image
 
-Push a commit to `main`:
+The local `desired_count = 0` bootstrap change does not need to be committed.
+
+Trigger GitHub Actions with an empty commit:
 
 ```bash
-cd ~/cloud-devops-assessment
+cd "$REPO_ROOT"
 ```
-
-If you have changes:
-
-```bash
-git add .
-git commit -m "Trigger initial deployment"
-git push origin main
-```
-
-If there are no changes:
 
 ```bash
 git commit --allow-empty -m "Trigger initial deployment"
@@ -692,7 +749,7 @@ The workflow should:
 4. Push the image to ECR
 5. Run the ECS deployment stage
 
-Verify that an image now exists:
+Verify that the image exists:
 
 ```bash
 aws ecr list-images \
@@ -704,27 +761,25 @@ aws ecr list-images \
 
 ## Step 8 — Set ECS Desired Count to 1
 
-After the first Docker image exists in ECR, enable one ECS task.
-
-From the repository root:
-
-```bash
-cd ~/cloud-devops-assessment
-```
+After the first backend image exists in ECR, enable one ECS task.
 
 Run:
+
+```bash
+cd "$REPO_ROOT"
+```
 
 ```bash
 sed -i 's/default = 0/default = 1/' terraform/modules/ecs/variables.tf
 ```
 
-Verify the change:
+Verify:
 
 ```bash
 grep -n "default = " terraform/modules/ecs/variables.tf
 ```
 
-You should see the ECS desired-count variable using:
+The desired-count variable should now show:
 
 ```text
 default = 1
@@ -733,14 +788,9 @@ default = 1
 Apply the change:
 
 ```bash
-cd terraform/environments/assessment
-```
+cd "$REPO_ROOT/terraform/environments/assessment"
 
-```bash
 terraform plan
-```
-
-```bash
 terraform apply
 ```
 
@@ -772,10 +822,10 @@ Pending: 0
 
 ## Step 9 — Get Deployment URLs
 
-From:
+From the assessment environment:
 
 ```bash
-cd ~/cloud-devops-assessment/terraform/environments/assessment
+cd "$REPO_ROOT/terraform/environments/assessment"
 ```
 
 View all outputs:
@@ -784,13 +834,13 @@ View all outputs:
 terraform output
 ```
 
-Frontend:
+Frontend URL:
 
 ```bash
 terraform output -raw frontend_website_url
 ```
 
-Backend ALB:
+Backend ALB DNS:
 
 ```bash
 terraform output -raw alb_dns_name
@@ -810,7 +860,7 @@ frontend/index.html
 
 to Amazon S3.
 
-The source file contains:
+The tracked file contains:
 
 ```text
 __API_URL__
@@ -822,7 +872,7 @@ Terraform replaces it with:
 http://<ALB-DNS>
 ```
 
-before uploading the rendered file.
+before uploading the rendered file to S3.
 
 This allows the frontend to use the dynamically created backend address.
 
@@ -844,7 +894,7 @@ Public subnets contain:
 
 Private subnets contain:
 
-- ECS Fargate tasks
+- ECS Fargate
 - RDS PostgreSQL
 
 Traffic flow:
@@ -893,7 +943,7 @@ Separate IAM roles are used for:
 - ECS task execution
 - GitHub Actions deployment
 
-GitHub Actions permissions are limited to required deployment actions where possible.
+GitHub Actions permissions are restricted to the deployment actions required by the project where possible.
 
 ## OIDC
 
@@ -930,7 +980,7 @@ For production, runtime application secrets should be stored in AWS Secrets Mana
 
 # Monitoring and Logging
 
-Amazon CloudWatch is used for centralized logging and monitoring.
+Amazon CloudWatch is used for centralized logs and monitoring.
 
 ## Logs
 
@@ -990,7 +1040,7 @@ Fargate was selected to avoid managing EC2 container hosts.
 
 Advantages:
 
-- No OS administration
+- No operating-system administration
 - No worker-node maintenance
 - Native ECR integration
 - Native ALB integration
@@ -1093,18 +1143,24 @@ Cost controls would include:
 
 # Verification
 
-## Backend Health
-
-Get the ALB hostname:
+Go to the assessment environment:
 
 ```bash
-terraform output -raw alb_dns_name
+cd "$REPO_ROOT/terraform/environments/assessment"
 ```
 
-Then:
+## Backend Health
+
+Get the ALB DNS:
 
 ```bash
-curl http://<ALB-DNS>/health
+ALB_DNS="$(terraform output -raw alb_dns_name)"
+```
+
+Test:
+
+```bash
+curl "http://$ALB_DNS/health"
 ```
 
 Expected:
@@ -1116,14 +1172,14 @@ Expected:
 ## Database Connectivity
 
 ```bash
-curl http://<ALB-DNS>/db-check
+curl "http://$ALB_DNS/db-check"
 ```
 
 ## Create User
 
 ```bash
 curl -X POST \
-  http://<ALB-DNS>/users \
+  "http://$ALB_DNS/users" \
   -H "Content-Type: application/json" \
   -d '{"name":"Test User","age":25}'
 ```
@@ -1131,7 +1187,7 @@ curl -X POST \
 ## List Users
 
 ```bash
-curl http://<ALB-DNS>/users
+curl "http://$ALB_DNS/users"
 ```
 
 ## ECS
@@ -1161,7 +1217,7 @@ terraform output
 
 ## End-to-End Validation
 
-The deployment was successfully validated with:
+The deployment was validated with:
 
 ```text
 Frontend: Running
@@ -1189,9 +1245,12 @@ The following flow was verified:
 
 ## Remove Local Environment
 
-From the repository root:
+From anywhere inside the repository:
 
 ```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
 docker compose down -v --remove-orphans
 ```
 
@@ -1199,13 +1258,13 @@ docker compose down -v --remove-orphans
 
 ## Remove AWS Assessment Infrastructure
 
-Go to:
+Go to the assessment environment:
 
 ```bash
-cd ~/cloud-devops-assessment/terraform/environments/assessment
+cd "$REPO_ROOT/terraform/environments/assessment"
 ```
 
-Export the database password again if Terraform requires the variable:
+Export the same database variable again if Terraform requires it:
 
 ```bash
 export TF_VAR_db_password='YOUR_DATABASE_PASSWORD'
@@ -1233,7 +1292,7 @@ If Terraform reports:
 RepositoryNotEmptyException
 ```
 
-delete the ECR repository and all images:
+delete the ECR repository and its images:
 
 ```bash
 aws ecr delete-repository \
@@ -1278,13 +1337,40 @@ The remote-state bucket is managed separately under:
 terraform/bootstrap
 ```
 
-It is intentionally not destroyed with the main application environment.
+It is intentionally not destroyed with the application environment.
 
-If you intentionally want to remove absolutely everything, first make sure the main environment state is empty and then review the bootstrap resources separately.
+If you intentionally want to remove the Terraform backend too, first make sure the assessment environment has been destroyed successfully.
+
+Then go to the bootstrap configuration:
+
+```bash
+cd "$REPO_ROOT/terraform/bootstrap"
+```
+
+Review the bootstrap state:
+
+```bash
+terraform state list
+```
+
+Because the state bucket may use `prevent_destroy` and versioning, remove it only when you intentionally want a full teardown.
 
 ---
 
 # Troubleshooting
+
+## Repository Location
+
+Do not assume the repository is under `~/`.
+
+From any subdirectory inside the Git repository:
+
+```bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+```
+
+This works regardless of the parent directory in which the repository was cloned.
 
 ## Terraform State Lock
 
@@ -1306,7 +1392,7 @@ as a normal workaround.
 
 ## ECS Does Not Start
 
-Check service status:
+Check the service:
 
 ```bash
 aws ecs describe-services \
@@ -1396,6 +1482,7 @@ This project demonstrates:
 - Local run instructions
 - Local reset instructions
 - Fresh AWS deployment instructions
+- Path-independent repository instructions
 - Architecture diagram
 - Architecture decisions and rationale
 - Trade-offs
